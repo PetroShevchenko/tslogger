@@ -55,8 +55,8 @@ void Logger::log(log_level_t level, const char *fmt, ...)
 	msg.filename = m_filename;
 	msg.format = m_format;
 	
-    std::va_list args;
-    va_start(args, fmt);
+	std::va_list args;
+	va_start(args, fmt);
 
 	for (const char *s = fmt; *s != '\0'; ++s) // list all specifiers 
 	{
@@ -114,8 +114,8 @@ Handler::Handler(
 	m_queuePtr{std::make_shared<SafeQueue<Message>>()}
 {
 	if (root == nullptr) {
-    	ec = make_system_error(EFAULT);
-    	return;
+		ec = make_system_error(EFAULT);
+		return;
 	}
 	if (s_init) {
 		ec = make_error_code(TsLoggerStatus::TS_LOGGER_ERR_SINGLE_INSTANCE);
@@ -139,27 +139,30 @@ void Handler::process()
 	Message msg = m_queuePtr.get()->front();
 	m_queuePtr.get()->pop();
 
+	if (msg.logLevel > m_maxLevel)
+		return;
+
 	std::filesystem::path filePath = m_root / msg.filename;
 
 	std::ofstream ofs(filePath, std::ofstream::out | std::ofstream::app);
 
-    if (ofs.is_open() && msg.logLevel <= m_maxLevel)
-    {
-    	if (msg.format & (1 << LEVEL_BIT))
-    		ofs << "[" << log_level_to_string(msg.logLevel) << "] ";
-    	if (msg.format & (1 << TIMESTAMP_BIT)) {
-    		std::string ts;
-    		timestamp_to_date_time_string(msg.timestamp, ts);
-    		ofs << ts << " ";
-    	}
-    	if (msg.format & (1 << THREAD_ID_BIT)) {
-    		std::stringstream ss;
-    		ss << msg.threadId; 		
-    		ofs << "thread_id : " << ss.str() << " ";
-    	}
+	if (ofs.is_open())
+	{
+		if (msg.format & (1 << LEVEL_BIT))
+			ofs << "[" << log_level_to_string(msg.logLevel) << "] ";
+		if (msg.format & (1 << TIMESTAMP_BIT)) {
+			std::string ts;
+			timestamp_to_date_time_string(msg.timestamp, ts);
+			ofs << ts << " ";
+		}
+		if (msg.format & (1 << THREAD_ID_BIT)) {
+			std::stringstream ss;
+			ss << msg.threadId;
+			ofs << "thread_id : " << ss.str() << " ";
+		}
 		ofs << msg.message;    	
-        ofs.close();
-    }
+		ofs.close();
+	}
 }
 
 }
