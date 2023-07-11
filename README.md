@@ -11,10 +11,12 @@ tslogger stands for Thread Safe Logger. The logger is written in C++17
 * A new logger should be created for each thread, from which an user wants to output logs
 * All log files are stored into the root directory
 * The root directory is created while the log handler object is constructing
-* There is a max logging level to print out only messages, which log level is less than the max logging level
+* There is a max logging level to print out only messages, which log level is less than or equal the max logging level
 * The root directory and the max logging level can be changed on the fly
 * The log file name can be the same or different for any threads
 * The log file name is set each time when the message is logged
+* Logging can also be done to a stream (clog, cout, cerr etc) at the same time as logging to a file in any combination of these options
+* The output stream is set on the log handler side
 
 ## Logger diagram
 
@@ -33,10 +35,10 @@ tslogger stands for Thread Safe Logger. The logger is written in C++17
                          |    Handler   |
                          |    Thread    |
                          |______________|
-                                 |
-                          _______|______       
-                         |     File     |        
-                         |______________|
+                            |         |
+                      ______|_____   _|_________    
+                     |    File    | |   Stream  |  
+                     |____________| |___________|
 
 Log message:
 ------------
@@ -45,7 +47,8 @@ Log message:
 3. thread id
 4. log file name
 5. output log format
-6. timestamp
+6. flags
+7. timestamp
 
 Handler:
 --------
@@ -62,7 +65,7 @@ Note: The compilation has been tested only on Ubuntu Linux
 
 To build the project launch the following command in the command prompt:
 ~~~
-user@host:~/tslogger$ mkdir build | cd build
+user@host:~/tslogger$ mkdir build && cd build
 user@host:~/tslogger/build$ cmake ..
 user@host:~/tslogger/build$ make
 ~~~

@@ -54,6 +54,7 @@ void Logger::log(log_level_t level, const char *fmt, ...)
 	msg.threadId = m_threadId;
 	msg.filename = m_filename;
 	msg.format = m_format;
+	msg.flags = m_flags;
 	
 	std::va_list args;
 	va_start(args, fmt);
@@ -107,11 +108,13 @@ void Logger::log(log_level_t level, const char *fmt, ...)
 Handler::Handler(
 		const char *root,
 		log_level_t maxLevel,
+		std::ostream &stream,
 		std::error_code &ec
 	):
 	m_root{root},
 	m_maxLevel{maxLevel},
-	m_queuePtr{std::make_shared<SafeQueue<Message>>()}
+	m_queuePtr{std::make_shared<SafeQueue<Message>>()},
+	m_stream{stream}
 {
 	if (root == nullptr) {
 		ec = make_system_error(EFAULT);
@@ -133,35 +136,50 @@ Handler::Handler(
 	ec.clear();
 }
 
+void Handler::output_log(const Message &msg, std::ostream &out)
+{
+	if (msg.format & (1 << LEVEL_BIT))
+		out << "[" << log_level_to_string(msg.logLevel) << "] ";
+	if (msg.format & (1 << TIMESTAMP_BIT)) {
+		std::string ts;
+		timestamp_to_date_time_string(msg.timestamp, ts);
+		out << ts << " ";
+	}
+	if (msg.format & (1 << THREAD_ID_BIT)) {
+		std::stringstream ss;
+		ss << msg.threadId;
+		out << "thread_id : " << ss.str() << " ";
+	}
+	out << msg.message;
+}
+
 void Handler::process()
 {
 	m_queuePtr.get()->wait_wail_empty_for(1); // wait for 1 second
+
+	if (m_queuePtr.get()->empty())
+		return;
+
 	Message msg = m_queuePtr.get()->front();
 	m_queuePtr.get()->pop();
 
-	if (msg.logLevel > m_maxLevel)
+	if (msg.logLevel > m_maxLevel || msg.flags == FLAGS_OUTPUT_TO_NOWHERE)
 		return;
 
-	std::filesystem::path filePath = m_root / msg.filename;
+	if (msg.flags & (1 << OUTPUT_TO_FILE_BIT)) {
 
-	std::ofstream ofs(filePath, std::ofstream::out | std::ofstream::app);
+		std::filesystem::path filePath = m_root / msg.filename;
 
-	if (ofs.is_open())
-	{
-		if (msg.format & (1 << LEVEL_BIT))
-			ofs << "[" << log_level_to_string(msg.logLevel) << "] ";
-		if (msg.format & (1 << TIMESTAMP_BIT)) {
-			std::string ts;
-			timestamp_to_date_time_string(msg.timestamp, ts);
-			ofs << ts << " ";
+		std::ofstream ofs(filePath, std::ofstream::out | std::ofstream::app);
+
+		if (ofs.is_open())
+		{
+			output_log(msg, ofs);
+			ofs.close();
 		}
-		if (msg.format & (1 << THREAD_ID_BIT)) {
-			std::stringstream ss;
-			ss << msg.threadId;
-			ofs << "thread_id : " << ss.str() << " ";
-		}
-		ofs << msg.message;    	
-		ofs.close();
+	}
+	if (msg.flags & (1 << OUTPUT_TO_STREAM_BIT)) {
+		output_log(msg, m_stream);
 	}
 }
 

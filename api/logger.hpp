@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
+#include <ios>
 #include <type_traits>
 #include <mutex>
 #include <string_view>
@@ -42,12 +43,32 @@ inline bool is_line_format_type(line_format_t format)
 	return (format >= LINE_FORMAT_MSG_ONLY && format <= LINE_FORMAT_ALL);
 }
 
+enum {
+	OUTPUT_TO_FILE_BIT = 0,
+	OUTPUT_TO_STREAM_BIT = 1,
+};
+
+enum {
+	FLAGS_OUTPUT_TO_NOWHERE = 0,
+	FLAGS_OUTPUT_TO_FILE_ONLY = (1 << OUTPUT_TO_FILE_BIT),
+	FLAGS_OUTPUT_TO_STREAM_ONLY = (1 << OUTPUT_TO_STREAM_BIT),
+	FLAGS_OUTPUT_TO_ALL = (1 << OUTPUT_TO_FILE_BIT) | (1 << OUTPUT_TO_STREAM_BIT),
+};
+
+typedef uint8_t flags_t;
+
+inline bool is_flags_type(flags_t flags)
+{
+	return (flags >= FLAGS_OUTPUT_TO_NOWHERE && flags <= FLAGS_OUTPUT_TO_ALL);
+}
+
 struct Message {
 	log_level_t logLevel;
 	std::string message;
 	std::thread::id threadId;
 	std::string filename;
 	line_format_t format;
+	flags_t flags;
 	time_t timestamp;
 };
 
@@ -55,6 +76,7 @@ time_t timestamp();
 void timestamp_to_date_time_string(time_t ts, std::string &out);
 void add_timestamp_prefix(const char *filename, std::string &out);
 const char *log_level_to_string(log_level_t level);
+void output_log(const Message &msg, std::ostream &out);
 
 template< typename T >
 std::string to_hex_string(T t)
@@ -69,11 +91,13 @@ public:
 	Logger(
 			std::shared_ptr<SafeQueue<Message>> queuePtr,
 			const char *filename,
+			const flags_t flags,
 			const line_format_t format = LINE_FORMAT_ALL
 		):
 		m_queuePtr{queuePtr},
 		m_filename{},
 		m_threadId{std::this_thread::get_id()},
+		m_flags{flags},
 		m_format{format}
 	{
 		if (filename == nullptr) {
@@ -81,6 +105,9 @@ public:
 		}
 		else {
 			m_filename = filename;
+		}
+		if (!is_flags_type(m_flags)) {
+			m_flags = FLAGS_OUTPUT_TO_FILE_ONLY;
 		}
 		if (!is_line_format_type(m_format)) {
 			m_format = LINE_FORMAT_ALL;
@@ -110,6 +137,7 @@ private:
 	std::shared_ptr<SafeQueue<Message>> m_queuePtr;
 	std::string m_filename;
 	std::thread::id m_threadId;
+	flags_t m_flags;
 	line_format_t m_format;
 };
 
@@ -118,6 +146,7 @@ public:
 	Handler(
 			const char *root,
 			log_level_t maxLevel,
+			std::ostream &stream,
 			std::error_code &ec
 		);
 	~Handler()
@@ -127,7 +156,7 @@ public:
 	Handler &operator=(const Logger&) = delete;
 	Handler &operator=(Logger&&) = delete;
 
-	std::shared_ptr<SafeQueue<Message>> getQueuePtr()
+	std::shared_ptr<SafeQueue<Message>> get_queue_ptr()
 	{
 		return m_queuePtr;
 	}
@@ -171,9 +200,13 @@ public:
 	}
 
 private:
+	void output_log(const Message &msg, std::ostream &out);
+
+private:
 	std::filesystem::path m_root;
 	log_level_t m_maxLevel;
 	std::shared_ptr<SafeQueue<Message>> m_queuePtr;
+	std::ostream &m_stream;
 	static bool s_init;
 	static std::mutex s_mutex;
 };

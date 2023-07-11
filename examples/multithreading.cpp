@@ -25,7 +25,7 @@ int main()
         exit(1);
     }
 
-	Handler logHandler(root, DEBUG, ec);
+	Handler logHandler(root, DEBUG, std::clog, ec);
 	if (ec.value()) {
 		std::cerr << "ERROR:(" << ec.value() << ") "<< ec.message() << "\n";
 		exit(1);
@@ -34,7 +34,7 @@ int main()
 	std::cout << "All logging files will be stored into the " << root << " directory\n";
 
     std::thread loggerThread1([&](){
-        Logger logger(logHandler.getQueuePtr(), nullptr);
+        Logger logger(logHandler.get_queue_ptr(), nullptr, FLAGS_OUTPUT_TO_ALL);
         #define LOG_D(...) LOG(logger, DEBUG, __VA_ARGS__) 
         int a = 0xFF09;
         LOG_D("> %s:%d | Thread1 | This is a hex variable value: %x\n",  __func__, __LINE__, a);
@@ -43,7 +43,7 @@ int main()
     std::thread loggerThread2([&](){
     	std::string filename;
     	add_timestamp_prefix("_thread2.log", filename);
-        Logger logger(logHandler.getQueuePtr(), filename.c_str());
+        Logger logger(logHandler.get_queue_ptr(), filename.c_str(), FLAGS_OUTPUT_TO_ALL);
         const char *text = "This is a \t\ttest error message from the Thread2\n";
         LOG(logger, ERROR, "%s", text);
     });
@@ -57,13 +57,13 @@ int main()
 	std::cout << "Root directory has been changed to the " << root << " directory\n";
 
     std::thread loggerThread3([&](){
-        Logger logger(logHandler.getQueuePtr(), "test.log");
+        Logger logger(logHandler.get_queue_ptr(), "test.log", FLAGS_OUTPUT_TO_ALL);
         const char *text = "This is a test message from the Thread3\n";
         logger.log(INFO, "%s", text);
     });
 
     std::thread loggerThread4([&](){
-        Logger logger(logHandler.getQueuePtr(), "test.log");
+        Logger logger(logHandler.get_queue_ptr(), "test.log", FLAGS_OUTPUT_TO_ALL);
         const char *text = "This is a test message from the Thread4\n";
         logger.log(WARNING, "%s", text);
     });
@@ -75,7 +75,9 @@ int main()
     	}
     });
 
-    std::cout << "Press Ctrl+C to stop logging and exit\n";
+    std::cout << "-----------------------------------------\n";
+    std::cout << "| Press Ctrl+C to stop logging and exit |\n";
+    std::cout << "-----------------------------------------\n";
 
  	if (loggerThread1.joinable())
     	loggerThread1.join();
