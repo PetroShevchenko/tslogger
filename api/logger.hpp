@@ -100,7 +100,8 @@ public:
         m_filename{},
         m_threadId{std::this_thread::get_id()},
         m_flags{flags},
-        m_format{format}
+        m_format{format},
+        m_defaultLevel{DEBUG}
     {
         if (filename == nullptr) {
             add_timestamp_prefix("_untitled.log", m_filename);
@@ -123,6 +124,104 @@ public:
     Logger &operator=(const Logger&) = delete;
     Logger &operator=(Logger&&) = delete;
 
+    Logger &operator<<(const char *v);
+    Logger &operator<<(char *v);
+    Logger &operator<<(std::string &v);
+    Logger &operator<<(std::vector<char> &v);
+    Logger &operator<<(char &v);
+
+    void log(log_level_t level, const char *fmt, ...);
+
+    void fill_message_common_parameters(log_level_t level, Message &msg)
+    {
+        msg.timestamp = timestamp();
+        msg.logLevel = level;
+        msg.threadId = m_threadId;
+        msg.filename = m_filename;
+        msg.format = m_format;
+        msg.flags = m_flags;
+    }
+
+    template <typename T>
+    Logger &operator<<(T &v)
+    {
+        Message msg;
+        fill_message_common_parameters(default_level(), msg);
+        msg.message = std::to_string(v);
+        m_queuePtr.get()->push(msg);
+        return *this;
+    }
+
+    template <typename T>
+    Logger &operator<<(std::vector<T> &v)
+    {
+        Message msg;
+        fill_message_common_parameters(default_level(), msg);
+        msg.message = "{ ";
+        for (std::size_t i = 0; i < v.size() - 1; ++i) {
+            if (i && i%16==0)
+                msg.message += "\n";
+            msg.message += std::to_string(v[i]) + ", ";
+        }
+        msg.message += std::to_string(v[v.size()-1]) + " }\n";
+        m_queuePtr.get()->push(msg);
+        return *this;
+    }
+
+    template <typename std::size_t N>
+    Logger &operator<<(std::array<char, N> &v)
+    {
+        Message msg;
+        fill_message_common_parameters(default_level(), msg);
+        msg.message = "{ ";
+        for (std::size_t i = 0; i < N-1; ++i) {
+            if (i && i%16==0)
+                msg.message += "\n";
+            msg.message += static_cast<char>(v[i]); msg.message += ", ";
+        }
+        msg.message += static_cast<char>(v[N-1]); msg.message += " }\n";
+        m_queuePtr.get()->push(msg);
+        return *this;
+    }
+
+    template <typename T, std::size_t N>
+    Logger &operator<<(std::array<T, N> &v)
+    {
+        Message msg;
+        fill_message_common_parameters(default_level(), msg);
+        msg.message = "{ ";
+        for (std::size_t i = 0; i < N-1; ++i) {
+            if (i && i%16==0)
+                msg.message += "\n";
+            msg.message += std::to_string(v[i]) + ", ";
+        }
+        msg.message += std::to_string(v[N-1]) + " }\n";
+        m_queuePtr.get()->push(msg);
+        return *this;
+    }
+
+    template <typename T, std::size_t N>
+    Logger &operator<<(T(&v)[N])
+    {
+        Message msg;
+        fill_message_common_parameters(default_level(), msg);
+        msg.message = "{ ";
+        for (std::size_t i = 0; i < N-1; ++i) {
+            if (i && i%16==0)
+                msg.message += "\n";
+            msg.message += std::to_string(v[i]) + ", ";
+        }
+        msg.message += std::to_string(v[N-1]) + " }\n";
+        m_queuePtr.get()->push(msg);
+        return *this;
+    }
+
+    template <typename T, std::size_t N>
+    Logger &operator<<(const T(&v)[N])
+    {
+        return operator<<(const_cast<T[N]>(v));
+    }
+
     void filename(const char *filename)
     {
         m_filename = filename;
@@ -133,7 +232,35 @@ public:
         return m_filename.c_str();
     }
 
-    void log(log_level_t level, const char *fmt, ...);
+    flags_t flags() const
+    {
+        return m_flags;
+    }
+
+    void flags(flags_t flags)
+    {
+        m_flags = flags;
+    }
+
+    void format(line_format_t format)
+    {
+        m_format = format;
+    }
+
+    line_format_t format() const
+    {
+        return m_format;
+    }
+
+    void default_level(log_level_t level)
+    {
+        m_defaultLevel = level;
+    }
+
+    log_level_t default_level() const
+    {
+        return m_defaultLevel;
+    }
 
 private:
     std::shared_ptr<SafeQueue<Message>> m_queuePtr;
@@ -141,6 +268,7 @@ private:
     std::thread::id m_threadId;
     flags_t m_flags;
     line_format_t m_format;
+    log_level_t m_defaultLevel;
 };
 
 class Handler {

@@ -49,12 +49,7 @@ const char *log_level_to_string(log_level_t level)
 void Logger::log(log_level_t level, const char *fmt, ...)
 {
     Message msg;
-    msg.timestamp = timestamp();
-    msg.logLevel = level;
-    msg.threadId = m_threadId;
-    msg.filename = m_filename;
-    msg.format = m_format;
-    msg.flags = m_flags;
+    fill_message_common_parameters(level,msg);
 
     std::va_list args;
     va_start(args, fmt);
@@ -103,6 +98,53 @@ void Logger::log(log_level_t level, const char *fmt, ...)
     }
     va_end(args);
     m_queuePtr.get()->push(msg);
+}
+
+Logger &Logger::operator<<(char &v)
+{
+    Message msg;
+    fill_message_common_parameters(default_level(), msg);
+    msg.message = static_cast<char>(v);
+    m_queuePtr.get()->push(msg);
+    return *this;
+}
+
+Logger &Logger::operator<<(char *v)
+{
+    Message msg;
+    fill_message_common_parameters(default_level(), msg);
+    msg.message = v;
+    m_queuePtr.get()->push(msg);
+    return *this;
+}
+
+Logger &Logger::operator<<(const char *v)
+{
+    return operator<<(const_cast<char *>(v));
+}
+
+Logger &Logger::operator<<(std::string &v)
+{
+    return operator<<(v.c_str());
+}
+
+Logger &Logger::operator<<(std::vector<char> &v)
+{
+    Message msg;
+    fill_message_common_parameters(default_level(), msg);
+
+    msg.message = "{ ";
+    for (std::size_t i = 0; i < v.size() - 1; ++i)
+    {
+        if (i && i%16==0)
+            msg.message += "\n";
+        msg.message += static_cast<char>(v[i]);
+        msg.message += ", ";
+    }
+    msg.message += static_cast<char>(v[v.size()-1]);
+    msg.message += " }\n";
+    m_queuePtr.get()->push(msg);
+    return *this;
 }
 
 Handler::Handler(
