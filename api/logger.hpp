@@ -202,7 +202,7 @@ public:
     }
 
 private:
-    void output_log(const Message &msg, std::ostream &out);
+    static void output_log(const Message &msg, std::ostream &out);
 
 private:
     std::filesystem::path m_root;
