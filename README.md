@@ -62,9 +62,9 @@ Handler:
 
 ## Build
 
-Note: The compilation has been tested only on Ubuntu Linux
+*Note: The compilation has been tested only on Ubuntu Linux*
 
-To build the project launch the following command in the command prompt:
+To build the project launch the following commands in the command prompt:
 ~~~
 user@host:~/tslogger$ mkdir build && cd build
 user@host:~/tslogger/build$ cmake ..
@@ -73,7 +73,58 @@ user@host:~/tslogger/build$ make
 
 ## Usage examples
 
+To use <b>tslogger</b> in your own project, follow these steps:
+1. Copy the <b>api/</b> folder with its content to your project
+2. Copy <b>libtslogger.a</b> to the <b>lib/</b> subdirectory
+3. Create your own source files in the <b>src/</b> subdirectory
+4. Create your own <b>CMakeLists.txt</b> file
+
+*Note: You can use any folder names instead of api/, src/, lib/*
+
+Here is the directory tree of the new sample project:
 ~~~
+myproject
+├── api
+│    ├── error.hpp
+│    ├── logger.hpp
+│    └── safe_queue.hpp
+├── CMakeLists.txt
+├── lib
+│    └── libtslogger.a
+└── src
+    └── simple_example.cpp
+~~~
+
+CMakeList.txt:
+~~~cmake
+cmake_minimum_required (VERSION 3.5)
+
+set(PROJECT_NAME "myproject")
+
+project(${PROJECT_NAME})
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -O0")
+
+set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+set(INC_DIR ${CMAKE_CURRENT_LIST_DIR}/api)
+set(LIB_DIR ${CMAKE_CURRENT_LIST_DIR}/lib)
+
+set(SRC_LIST ${SRC_DIR}/simple_example.cpp)
+
+add_definitions(-DUSE_TS_LOGGER)
+
+add_executable(${PROJECT_NAME} ${SRC_LIST})
+
+target_link_libraries(${PROJECT_NAME} tslogger)
+
+target_link_directories(${PROJECT_NAME} PRIVATE ${LIB_DIR})
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${INC_DIR})
+~~~
+
+simple_example.cpp:
+```c++
 #include <logger.hpp>
 #include <thread>
 #include <vector>
@@ -133,7 +184,9 @@ int main()
 
     exit(0);
 }
-~~~
+```
+
+*Note: Replace the path in the line <b>const char \*root = \"/home/user/logs/\";</b> on your own*
 
 Output:
 ~~~
