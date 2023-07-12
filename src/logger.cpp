@@ -189,8 +189,8 @@ void Handler::output_log(const Message &msg, std::ostream &out)
     }
     if (msg.format & (1 << THREAD_ID_BIT)) {
         std::stringstream ss;
-        ss << msg.threadId;
-        out << "thread_id : " << ss.str() << " ";
+        ss << "0x" << std::hex << msg.threadId;
+        out << "thread_id: " << ss.str() << " ";
     }
     out << msg.message;
 }

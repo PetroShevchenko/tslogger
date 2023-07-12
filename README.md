@@ -139,7 +139,7 @@ Output:
 ~~~
 Hello, tslogger!
 vector: { 1, 2, 3 }
-[DEBUG] 2023-07-12 00:16:33 thread_id : 139838615447104 Value in hex format: 0xff00a55a
+[DEBUG] 2023-07-12 11:06:26 thread_id: 0x7ffff6ffe640 Value in hex format: 0xff00a55a
 ~~~
 
 The log file can be shown by the following command:

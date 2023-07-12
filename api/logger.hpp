@@ -83,9 +83,10 @@ void output_log(const Message &msg, std::ostream &out);
 template< typename T >
 std::string to_hex_string(T t)
 {
-  std::stringstream stream;
-  stream << "0x" << std::setfill ('0') << std::setw(sizeof(T)*2) << std::hex << t;
-  return stream.str();
+    std::stringstream stream;
+    stream << "0x" << std::hex << t;
+    //stream << "0x" << std::setfill ('0') << std::setw(sizeof(T)*2) << std::hex << t;
+    return stream.str();
 }
 
 class Logger {
