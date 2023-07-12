@@ -1,20 +1,11 @@
 cmake_minimum_required (VERSION 3.5)
 
 set(
-    PROJECT1_NAME
-        "multithreading"
+    PROJECT_NAME
+        "tslogger"
 )
 
-set(
-    PROJECT2_NAME
-        "container_logging"
-)
-
-set(
-    PROJECT3_NAME
-        "simple_example"
-)
-project(${PROJECT1_NAME})
+project(${PROJECT_NAME})
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb -O0")
@@ -43,52 +34,93 @@ set(
         ${INC_DIR}/safe_queue.hpp
 )
 
+add_definitions(-DUSE_TS_LOGGER)
+
+add_library(
+    ${PROJECT_NAME} STATIC
+        ${SRC_LIST}
+)
+
+target_include_directories(
+    ${PROJECT_NAME} PRIVATE
+        ${INC_DIR}
+)
+
+##############################################################
+# Examples
+##############################################################
+
+set(
+    EXAMPLE1_NAME
+        "simple_example"
+)
+
+set(
+    EXAMPLE2_NAME
+        "multithreading"
+)
+
+set(
+    EXAMPLE3_NAME
+        "container_logging"
+)
+
 set(
     EXAMPLE1_SRC_LIST
-        ${SRC_LIST}
-        ${EXAMPLES_DIR}/multithreading.cpp
+        ${EXAMPLES_DIR}/simple_example.cpp
 )
 
 set(
     EXAMPLE2_SRC_LIST
-        ${SRC_LIST}
-        ${EXAMPLES_DIR}/container_logging.cpp
+        ${EXAMPLES_DIR}/multithreading.cpp
 )
 
 set(
     EXAMPLE3_SRC_LIST
-        ${SRC_LIST}
-        ${EXAMPLES_DIR}/simple_example.cpp
+        ${EXAMPLES_DIR}/container_logging.cpp
 )
 
 add_executable(
-    ${PROJECT1_NAME}
+    ${EXAMPLE1_NAME}
         ${EXAMPLE1_SRC_LIST}
 )
 
 add_executable(
-    ${PROJECT2_NAME}
+    ${EXAMPLE2_NAME}
         ${EXAMPLE2_SRC_LIST}
 )
 
 add_executable(
-    ${PROJECT3_NAME}
+    ${EXAMPLE3_NAME}
         ${EXAMPLE3_SRC_LIST}
 )
 
+target_link_libraries(
+    ${EXAMPLE1_NAME}
+        tslogger
+)
+
+target_link_libraries(
+    ${EXAMPLE2_NAME}
+        tslogger
+)
+
+target_link_libraries(
+    ${EXAMPLE3_NAME}
+        tslogger
+)
+
 target_include_directories(
-    ${PROJECT1_NAME} PRIVATE
+    ${EXAMPLE1_NAME} PRIVATE
         ${INC_DIR}
 )
 
 target_include_directories(
-    ${PROJECT2_NAME} PRIVATE
+    ${EXAMPLE2_NAME} PRIVATE
         ${INC_DIR}
 )
 
 target_include_directories(
-    ${PROJECT3_NAME} PRIVATE
+    ${EXAMPLE3_NAME} PRIVATE
         ${INC_DIR}
 )
-
-add_definitions(-DUSE_TS_LOGGER)

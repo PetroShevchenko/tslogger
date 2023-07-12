@@ -17,7 +17,7 @@ static void signal_handler(int signo)
 int main()
 {
     std::error_code ec;
-    const char *root = "/home/petro/1/2/3/";
+    const char *root = "/home/petro/logs/1/2/3/";
 
     if (signal(SIGINT, signal_handler) == SIG_ERR)
     {
@@ -57,7 +57,7 @@ int main()
         LOG(logger, ERROR, "%s", text);
     });
 
-    root = "/home/petro/1/2/3/4/";
+    root = "/home/petro/logs/1/2/3/4/";
     logHandler.root(root, ec);
     if (ec.value()) {
         std::cerr << "ERROR:(" << ec.value() << ") "<< ec.message() << "\n";
