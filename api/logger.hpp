@@ -12,6 +12,8 @@
 #include <mutex>
 #include <string_view>
 #include <syncstream>
+#include <vector>
+#include <array>
 #include "safe_queue.hpp"
 #include "error.hpp"
 
