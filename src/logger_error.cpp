@@ -1,4 +1,4 @@
-#include "error.hpp"
+#include "logger_error.hpp"
 #include <string>
 
 namespace
@@ -31,6 +31,9 @@ const TsLoggerErrorCategory theTsLoggerErrorCategory {};
 
 } // namespace
 
+namespace tslogger
+{
+
 std::error_code make_error_code (TsLoggerStatus e)
 {
     return {static_cast<int>(e), theTsLoggerErrorCategory};
@@ -40,3 +43,5 @@ std::error_code make_system_error (int e)
 {
     return {e, std::generic_category()};
 }
+
+} // namespace tslogger

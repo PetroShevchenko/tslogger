@@ -27,9 +27,9 @@ set(
 
 set(
     SRC_LIST
-        ${SRC_DIR}/error.cpp
         ${SRC_DIR}/logger.cpp
-        ${INC_DIR}/error.hpp
+        ${SRC_DIR}/logger_error.cpp
+        ${INC_DIR}/logger_error.hpp
         ${INC_DIR}/logger.hpp
         ${INC_DIR}/safe_queue.hpp
 )

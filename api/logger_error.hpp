@@ -1,5 +1,5 @@
-#ifndef _ERROR_HPP
-#define _ERROR_HPP
+#ifndef _TS_LOGGER_ERROR_HPP
+#define _TS_LOGGER_ERROR_HPP
 #include <system_error>
 
 enum class TsLoggerStatus
@@ -14,8 +14,11 @@ namespace std
 template<> struct is_error_condition_enum<TsLoggerStatus> : public true_type {};
 }
 
+namespace tslogger
+{
 std::error_code make_error_code (TsLoggerStatus e);
 std::error_code make_system_error (int e);
+}
 
 #endif
 

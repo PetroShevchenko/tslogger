@@ -15,7 +15,7 @@
 #include <vector>
 #include <array>
 #include "safe_queue.hpp"
-#include "error.hpp"
+#include "logger_error.hpp"
 
 namespace tslogger
 {

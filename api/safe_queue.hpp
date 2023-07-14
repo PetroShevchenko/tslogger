@@ -5,7 +5,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <chrono>
-#include "error.hpp"
+#include "logger_error.hpp"
 
 template <typename T>
 struct SafeQueue
@@ -53,7 +53,7 @@ void SafeQueue<T *>::push(T *value, std::error_code &ec)
 {
     if (value == nullptr)
     {
-        ec = make_system_error(EFAULT);
+        ec = tslogger::make_system_error(EFAULT);
         return;
     }
     std::unique_lock<std::mutex> ul(m_mutex);
