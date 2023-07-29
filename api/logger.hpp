@@ -265,6 +265,11 @@ public:
         return m_defaultLevel;
     }
 
+    std::shared_ptr<SafeQueue<Message>> queue_ptr()
+    {
+        return m_queuePtr;
+    }
+
 private:
     std::shared_ptr<SafeQueue<Message>> m_queuePtr;
     std::string m_filename;
@@ -350,8 +355,8 @@ private:
 #define LOG(obj, logLevel, ...)
 #endif
 
-#define ENTER_LOG(obj, logLevel) LOG(obj, logLevel, "<<< Entering\n")
-#define EXIT_LOG(obj, logLevel) LOG(obj, logLevel, ">>> Exiting\n")
+#define ENTER_LOG(obj, logLevel) LOG(obj, logLevel, "%s:%d <<< Entering\n", __FILE__, __LINE__)
+#define EXIT_LOG(obj, logLevel) LOG(obj, logLevel, "%s:%d >>> Exiting\n", __FILE__, __LINE__)
 
 } // tslogger
 
