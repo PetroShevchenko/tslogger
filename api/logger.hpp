@@ -5,6 +5,7 @@
 #include <ctime>
 #include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <iostream>
 #include <ios>
@@ -110,7 +111,7 @@ public:
             add_timestamp_prefix("_untitled.log", m_filename);
         }
         else {
-            m_filename = filename;
+            m_filename.append(filename);
         }
         if (!is_flags_type(m_flags)) {
             m_flags = FLAGS_OUTPUT_TO_FILE_ONLY;
@@ -140,7 +141,7 @@ public:
         msg.timestamp = timestamp();
         msg.logLevel = level;
         msg.threadId = m_threadId;
-        msg.filename = m_filename;
+        msg.filename.append(m_filename);
         msg.format = m_format;
         msg.flags = m_flags;
     }
@@ -150,7 +151,7 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message = std::to_string(v);
+        msg.message .append(std::to_string(v));
         m_queuePtr.get()->push(msg);
         return *this;
     }
@@ -160,13 +161,13 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message = "{ ";
+        msg.message.append("{ ");
         for (std::size_t i = 0; i < v.size() - 1; ++i) {
             if (i && i%16==0)
-                msg.message += "\n";
-            msg.message += std::to_string(v[i]) + ", ";
+                msg.message.append("\n");
+            msg.message.append(std::to_string(v[i]) + ", ");
         }
-        msg.message += std::to_string(v[v.size()-1]) + " }\n";
+        msg.message.append(std::to_string(v[v.size()-1]) + " }\n");
         m_queuePtr.get()->push(msg);
         return *this;
     }
@@ -176,13 +177,13 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message = "{ ";
+        msg.message.append("{ ");
         for (std::size_t i = 0; i < N-1; ++i) {
             if (i && i%16==0)
-                msg.message += "\n";
-            msg.message += static_cast<char>(v[i]); msg.message += ", ";
+                msg.message.append("\n");
+            msg.message.push_back(static_cast<char>(v[i])); msg.message.append(", ");
         }
-        msg.message += static_cast<char>(v[N-1]); msg.message += " }\n";
+        msg.message.push_back(static_cast<char>(v[N-1])); msg.message.append(" }\n");
         m_queuePtr.get()->push(msg);
         return *this;
     }
@@ -192,13 +193,13 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message = "{ ";
+        msg.message.append("{ ");
         for (std::size_t i = 0; i < N-1; ++i) {
             if (i && i%16==0)
-                msg.message += "\n";
-            msg.message += std::to_string(v[i]) + ", ";
+                msg.message.append("\n");
+            msg.message.append(std::to_string(v[i]) + ", ");
         }
-        msg.message += std::to_string(v[N-1]) + " }\n";
+        msg.message.append(std::to_string(v[N-1]) + " }\n");
         m_queuePtr.get()->push(msg);
         return *this;
     }
@@ -208,13 +209,13 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message = "{ ";
+        msg.message.append("{ ");
         for (std::size_t i = 0; i < N-1; ++i) {
             if (i && i%16==0)
-                msg.message += "\n";
-            msg.message += std::to_string(v[i]) + ", ";
+                msg.message.append("\n");
+            msg.message.append(std::to_string(v[i]) + ", ");
         }
-        msg.message += std::to_string(v[N-1]) + " }\n";
+        msg.message.append(std::to_string(v[N-1]) + " }\n");
         m_queuePtr.get()->push(msg);
         return *this;
     }
@@ -227,6 +228,9 @@ public:
 
     void filename(const char *filename)
     {
+        int len = strlen(filename);
+        if (len > m_filename.size())
+            m_filename.resize(len);
         m_filename = filename;
     }
 

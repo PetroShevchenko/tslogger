@@ -19,6 +19,7 @@ void timestamp_to_date_time_string(time_t ts, std::string &out)
 {
     char buf[20];
     strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime( &ts ));
+    out.reserve(strlen(buf));
     out = buf;
 }
 
@@ -26,6 +27,7 @@ void add_timestamp_prefix(const char *filename, std::string &out)
 {
     time_t ts = timestamp();
     timestamp_to_date_time_string(ts, out);
+    out.resize(out.size() + strlen(filename));
     out += filename;
 }
 
@@ -63,37 +65,37 @@ void Logger::log(log_level_t level, const char *fmt, ...)
             {
             case 'd':
             case 'i':
-                msg.message += std::to_string(va_arg(args, int)); // signed decimal integer
+                msg.message.append(std::to_string(va_arg(args, int))); // signed decimal integer
                 continue;
             case 'F':
             case 'f':
-                msg.message += std::to_string(va_arg(args, double)); // decimal floating point
+                msg.message.append(std::to_string(va_arg(args, double))); // decimal floating point
                 continue;
             case 's':
-                msg.message += std::string(va_arg(args, const char*)); // string of characters
+                msg.message.append(std::string(va_arg(args, const char*))); // string of characters
                 continue;
             case 'c':
-                msg.message += static_cast<char>(va_arg(args, int)); // character
+                msg.message.push_back(static_cast<char>(va_arg(args, int))); // character
                 continue;
             case '%':
-                msg.message += "%"; // special character
+                msg.message.append("%"); // special character
                 continue;
             case 'x':
             case 'X':
-                msg.message += to_hex_string(va_arg(args, unsigned int)); // unsigned hexadecimal integer
+                msg.message.append(to_hex_string(va_arg(args, unsigned int))); // unsigned hexadecimal integer
                 continue;
             case 'u':
-                msg.message += std::to_string(va_arg(args, unsigned int)); // unsigned decimal integer
+                msg.message.append(std::to_string(va_arg(args, unsigned int))); // unsigned decimal integer
                 continue;
             }
         case '\n':
-            msg.message += "\n"; // special character
+            msg.message.append("\n"); // special character
             continue;
         case '\t':
-            msg.message += "\t"; // special character
+            msg.message.append("\t"); // special character
             continue;
         default:
-            msg.message += *s;
+            msg.message.push_back(*s);
         }
     }
     va_end(args);
@@ -104,7 +106,7 @@ Logger &Logger::operator<<(char &v)
 {
     Message msg;
     fill_message_common_parameters(default_level(), msg);
-    msg.message = static_cast<char>(v);
+    msg.message.push_back(static_cast<char>(v));
     m_queuePtr.get()->push(msg);
     return *this;
 }
@@ -113,7 +115,7 @@ Logger &Logger::operator<<(char *v)
 {
     Message msg;
     fill_message_common_parameters(default_level(), msg);
-    msg.message = v;
+    msg.message.append(v);
     m_queuePtr.get()->push(msg);
     return *this;
 }
@@ -133,16 +135,16 @@ Logger &Logger::operator<<(std::vector<char> &v)
     Message msg;
     fill_message_common_parameters(default_level(), msg);
 
-    msg.message = "{ ";
+    msg.message.append("{ ");
     for (std::size_t i = 0; i < v.size() - 1; ++i)
     {
         if (i && i%16==0)
-            msg.message += "\n";
-        msg.message += static_cast<char>(v[i]);
-        msg.message += ", ";
+            msg.message.append("\n");
+        msg.message.push_back(static_cast<char>(v[i]));
+        msg.message.append(", ");
     }
-    msg.message += static_cast<char>(v[v.size()-1]);
-    msg.message += " }\n";
+    msg.message.push_back(static_cast<char>(v[v.size()-1]));
+    msg.message.append(" }\n");
     m_queuePtr.get()->push(msg);
     return *this;
 }
