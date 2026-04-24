@@ -60,6 +60,16 @@ Handler:
 5. changing the root path and max logging level on the fly
 ~~~
 
+
+## Platform support
+
+The logger core is platform-independent and uses a small platform abstraction from `api/platform.hpp`.
+
+* `src/platform_posix.cpp` contains POSIX/NuttX-friendly filesystem, file append, and time wrappers (`mkdir`, `stat`, `open/write`, `localtime_r`).
+* `src/logger.cpp` and `api/logger.hpp` contain only platform-independent logger logic and call the abstraction layer.
+
+If you need a custom port, keep `api/platform.hpp` unchanged and provide another implementation file instead of `src/platform_posix.cpp`.
+
 ## Build
 
 *Note: The compilation has been tested only on Ubuntu Linux*

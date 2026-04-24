@@ -1,7 +1,6 @@
 #include <cstdarg>
-#include <cstddef>
-#include <vector>
-#include <fstream>
+#include <ctime>
+
 #include "logger.hpp"
 
 namespace tslogger
@@ -17,9 +16,14 @@ time_t timestamp()
 
 void timestamp_to_date_time_string(time_t ts, std::string &out)
 {
-    char buf[20];
-    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime( &ts ));
-    out.reserve(strlen(buf));
+    std::tm tmValue{};
+    if (!platform::localtime_safe(ts, tmValue)) {
+        out.clear();
+        return;
+    }
+
+    char buf[20] = {};
+    std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tmValue);
     out = buf;
 }
 
@@ -27,14 +31,12 @@ void add_timestamp_prefix(const char *filename, std::string &out)
 {
     time_t ts = timestamp();
     timestamp_to_date_time_string(ts, out);
-    out.resize(out.size() + strlen(filename));
     out += filename;
 }
 
 const char *log_level_to_string(log_level_t level)
 {
-    switch(level)
-    {
+    switch (level) {
     case ERROR:
         return "ERROR";
     case WARNING:
@@ -51,63 +53,64 @@ const char *log_level_to_string(log_level_t level)
 void Logger::log(log_level_t level, const char *fmt, ...)
 {
     Message msg;
-    fill_message_common_parameters(level,msg);
+    fill_message_common_parameters(level, msg);
 
     std::va_list args;
     va_start(args, fmt);
 
-    for (const char *s = fmt; *s != '\0'; ++s) // list all specifiers
-    {
-        switch(*s)
-        {
+    for (const char *s = fmt; *s != '\0'; ++s) {
+        switch (*s) {
         case '%':
-            switch(*++s) // read format symbol
-            {
+            switch (*++s) {
             case 'd':
             case 'i':
-                msg.message.append(std::to_string(va_arg(args, int))); // signed decimal integer
+                msg.message.append(std::to_string(va_arg(args, int)));
                 continue;
             case 'F':
             case 'f':
-                msg.message.append(std::to_string(va_arg(args, double))); // decimal floating point
+                msg.message.append(std::to_string(va_arg(args, double)));
                 continue;
             case 's':
-                msg.message.append(std::string(va_arg(args, const char*))); // string of characters
+                msg.message.append(std::string(va_arg(args, const char *)));
                 continue;
             case 'c':
-                msg.message.push_back(static_cast<char>(va_arg(args, int))); // character
+                msg.message.push_back(static_cast<char>(va_arg(args, int)));
                 continue;
             case '%':
-                msg.message.append("%"); // special character
+                msg.message.append("%");
                 continue;
             case 'x':
             case 'X':
-                msg.message.append(to_hex_string(va_arg(args, unsigned int))); // unsigned hexadecimal integer
+                msg.message.append(to_hex_string(va_arg(args, unsigned int)));
                 continue;
             case 'u':
-                msg.message.append(std::to_string(va_arg(args, unsigned int))); // unsigned decimal integer
+                msg.message.append(std::to_string(va_arg(args, unsigned int)));
+                continue;
+            default:
+                msg.message.push_back('%');
+                msg.message.push_back(*s);
                 continue;
             }
         case '\n':
-            msg.message.append("\n"); // special character
+            msg.message.append("\n");
             continue;
         case '\t':
-            msg.message.append("\t"); // special character
+            msg.message.append("\t");
             continue;
         default:
             msg.message.push_back(*s);
         }
     }
     va_end(args);
-    m_queuePtr.get()->push(msg);
+    m_queuePtr->push(msg);
 }
 
 Logger &Logger::operator<<(char &v)
 {
     Message msg;
     fill_message_common_parameters(default_level(), msg);
-    msg.message.push_back(static_cast<char>(v));
-    m_queuePtr.get()->push(msg);
+    msg.message.push_back(v);
+    m_queuePtr->push(msg);
     return *this;
 }
 
@@ -115,8 +118,8 @@ Logger &Logger::operator<<(char *v)
 {
     Message msg;
     fill_message_common_parameters(default_level(), msg);
-    msg.message.append(v);
-    m_queuePtr.get()->push(msg);
+    msg.message.append(v == nullptr ? "<null>" : v);
+    m_queuePtr->push(msg);
     return *this;
 }
 
@@ -136,48 +139,54 @@ Logger &Logger::operator<<(std::vector<char> &v)
     fill_message_common_parameters(default_level(), msg);
 
     msg.message.append("{ ");
-    for (std::size_t i = 0; i < v.size() - 1; ++i)
-    {
-        if (i && i%16==0)
+    if (v.empty()) {
+        msg.message.append("}");
+        m_queuePtr->push(msg);
+        return *this;
+    }
+    for (std::size_t i = 0; i < v.size(); ++i) {
+        if (i && i % 16 == 0)
             msg.message.append("\n");
         msg.message.push_back(static_cast<char>(v[i]));
-        msg.message.append(", ");
+        msg.message.append(i + 1 < v.size() ? ", " : " }");
     }
-    msg.message.push_back(static_cast<char>(v[v.size()-1]));
-    msg.message.append(" }\n");
-    m_queuePtr.get()->push(msg);
+    m_queuePtr->push(msg);
     return *this;
 }
 
-Handler::Handler(
-        const char *root,
-        log_level_t maxLevel,
-        std::ostream &stream,
-        std::error_code &ec
-    ):
-    m_root{root},
-    m_maxLevel{maxLevel},
-    m_queuePtr{std::make_shared<SafeQueue<Message>>()},
-    m_stream{stream}
+Handler::Handler(const char *root, log_level_t maxLevel, std::ostream &stream, std::error_code &ec)
+    :
+      m_root{root == nullptr ? "" : root},
+      m_maxLevel{maxLevel},
+      m_queuePtr{std::make_shared<SafeQueue<Message>>()},
+      m_stream{stream}
 {
     if (root == nullptr) {
         ec = make_system_error(EFAULT);
         return;
     }
+
+    std::lock_guard<std::mutex> lg(s_mutex);
     if (s_init) {
         ec = make_error_code(TsLoggerStatus::TS_LOGGER_ERR_SINGLE_INSTANCE);
         return;
     }
 
-    std::filesystem::create_directories(root);
-
-    if (!std::filesystem::is_directory(m_root)) {
-        ec = make_error_code(TsLoggerStatus::TS_LOGGER_ERR_NOT_DIRECTORY);
+    if (!platform::create_directories(m_root, ec) || !platform::is_directory(m_root, ec)) {
+        if (!ec) {
+            ec = make_error_code(TsLoggerStatus::TS_LOGGER_ERR_NOT_DIRECTORY);
+        }
         return;
     }
 
     s_init = true;
     ec.clear();
+}
+
+Handler::~Handler()
+{
+    std::lock_guard<std::mutex> lg(s_mutex);
+    s_init = false;
 }
 
 void Handler::output_log(const Message &msg, std::ostream &out)
@@ -190,41 +199,70 @@ void Handler::output_log(const Message &msg, std::ostream &out)
         out << ts << " ";
     }
     if (msg.format & (1 << THREAD_ID_BIT)) {
-        std::stringstream ss;
-        ss << "0x" << std::hex << msg.threadId;
-        out << "thread_id: " << ss.str() << " ";
+        out << "thread_id: " << platform::thread_id_to_string(msg.threadId) << " ";
     }
     out << msg.message;
 }
 
 void Handler::process()
 {
-    m_queuePtr.get()->wait_wail_empty_for(1); // wait for 1 second
+    m_queuePtr->wait_wail_empty_for(1);
 
-    if (m_queuePtr.get()->empty())
+    auto msgOpt = m_queuePtr->pop();
+    if (!msgOpt.has_value()) {
         return;
+    }
+    const Message &msg = *msgOpt;
 
-    Message msg = m_queuePtr.get()->front();
-    m_queuePtr.get()->pop();
-
-    if (msg.logLevel > m_maxLevel || msg.flags == FLAGS_OUTPUT_TO_NOWHERE)
+    if (msg.logLevel > max_level() || msg.flags == FLAGS_OUTPUT_TO_NOWHERE)
         return;
 
     if (msg.flags & (1 << OUTPUT_TO_FILE_BIT)) {
+        std::error_code ec;
+        const std::string filePath = m_root + "/" + msg.filename;
+        const std::string line = [&msg]() {
+            std::ostringstream oss;
+            output_log(msg, oss);
+            return oss.str();
+        }();
 
-        std::filesystem::path filePath = m_root / msg.filename;
-
-        std::ofstream ofs(filePath, std::ofstream::out | std::ofstream::app);
-
-        if (ofs.is_open())
-        {
-            output_log(msg, ofs);
-            ofs.close();
-        }
+        platform::append_to_file(filePath, line, ec);
     }
     if (msg.flags & (1 << OUTPUT_TO_STREAM_BIT)) {
         output_log(msg, m_stream);
     }
 }
 
+void Handler::root(std::string rootValue, std::error_code &ec)
+{
+    const std::lock_guard<std::mutex> lg(s_mutex);
+    if (!platform::create_directories(rootValue, ec) || !platform::is_directory(rootValue, ec)) {
+        if (!ec) {
+            ec = make_error_code(TsLoggerStatus::TS_LOGGER_ERR_NOT_DIRECTORY);
+        }
+        return;
+    }
+
+    m_root = std::move(rootValue);
+    ec.clear();
 }
+
+std::string Handler::root() const
+{
+    const std::lock_guard<std::mutex> lg(s_mutex);
+    return m_root;
+}
+
+void Handler::max_level(log_level_t level)
+{
+    const std::lock_guard<std::mutex> lg(s_mutex);
+    m_maxLevel = level;
+}
+
+log_level_t Handler::max_level() const
+{
+    const std::lock_guard<std::mutex> lg(s_mutex);
+    return m_maxLevel;
+}
+
+} // namespace tslogger

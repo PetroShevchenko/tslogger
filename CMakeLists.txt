@@ -29,9 +29,11 @@ set(
     SRC_LIST
         ${SRC_DIR}/logger.cpp
         ${SRC_DIR}/logger_error.cpp
+        ${SRC_DIR}/platform_posix.cpp
         ${INC_DIR}/logger_error.hpp
         ${INC_DIR}/logger.hpp
         ${INC_DIR}/safe_queue.hpp
+        ${INC_DIR}/platform.hpp
 )
 
 add_definitions(-DUSE_TS_LOGGER)
