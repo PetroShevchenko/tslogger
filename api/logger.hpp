@@ -70,13 +70,13 @@ inline bool is_flags_type(flags_t flags)
 }
 
 struct Message {
-    log_level_t logLevel;
-    std::string message;
-    std::thread::id threadId;
-    std::string filename;
-    line_format_t format;
-    flags_t flags;
-    time_t timestamp;
+    log_level_t logLevel_;
+    std::string message_;
+    std::thread::id threadId_;
+    std::string filename_;
+    line_format_t format_;
+    flags_t flags_;
+    time_t timestamp_;
 };
 
 time_t timestamp();
@@ -100,22 +100,22 @@ public:
         flags_t flags,
         line_format_t format = LINE_FORMAT_ALL)
         :
-          m_queuePtr{std::move(queuePtr)},
-          m_filename{},
-          m_flags{flags},
-          m_format{format},
-          m_defaultLevel{DEBUG}
+          m_queuePtr_{std::move(queuePtr)},
+          m_filename_{},
+          m_flags_{flags},
+          m_format_{format},
+          m_defaultLevel_{DEBUG}
     {
         if (filename == nullptr) {
-            add_timestamp_prefix("_untitled.log", m_filename);
+            add_timestamp_prefix("_untitled.log", m_filename_);
         } else {
-            m_filename.append(filename);
+            m_filename_.append(filename);
         }
-        if (!is_flags_type(m_flags)) {
-            m_flags = FLAGS_OUTPUT_TO_FILE_ONLY;
+        if (!is_flags_type(m_flags_)) {
+            m_flags_ = FLAGS_OUTPUT_TO_FILE_ONLY;
         }
-        if (!is_line_format_type(m_format)) {
-            m_format = LINE_FORMAT_ALL;
+        if (!is_line_format_type(m_format_)) {
+            m_format_ = LINE_FORMAT_ALL;
         }
     }
 
@@ -136,12 +136,12 @@ public:
 
     void fill_message_common_parameters(log_level_t level, Message &msg)
     {
-        msg.timestamp = timestamp();
-        msg.logLevel = level;
-        msg.threadId = std::this_thread::get_id();
-        msg.filename = m_filename;
-        msg.format = m_format;
-        msg.flags = m_flags;
+        msg.timestamp_ = timestamp();
+        msg.logLevel_ = level;
+        msg.threadId_ = std::this_thread::get_id();
+        msg.filename_ = m_filename_;
+        msg.format_ = m_format_;
+        msg.flags_ = m_flags_;
     }
 
     template<typename T>
@@ -149,8 +149,8 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message.append(std::to_string(v));
-        m_queuePtr->push(msg);
+        msg.message_.append(std::to_string(v));
+        m_queuePtr_->push(msg);
         return *this;
     }
 
@@ -159,19 +159,20 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message.append("{ ");
+        msg.message_.append("{ ");
         if (v.empty()) {
-            msg.message.append("}");
-            m_queuePtr->push(msg);
+            msg.message_.append("}");
+            m_queuePtr_->push(msg);
             return *this;
         }
         for (std::size_t i = 0; i < v.size(); ++i) {
-            if (i && i % 16 == 0)
-                msg.message.append("\n");
-            msg.message.append(std::to_string(v[i]));
-            msg.message.append(i + 1 < v.size() ? ", " : " }");
+            if (i && i % 16 == 0) {
+                msg.message_.append("\n");
+}
+            msg.message_.append(std::to_string(v[i]));
+            msg.message_.append(i + 1 < v.size() ? ", " : " }");
         }
-        m_queuePtr->push(msg);
+        m_queuePtr_->push(msg);
         return *this;
     }
 
@@ -180,14 +181,15 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message.append("{ ");
+        msg.message_.append("{ ");
         for (std::size_t i = 0; i < N; ++i) {
-            if (i && i % 16 == 0)
-                msg.message.append("\n");
-            msg.message.push_back(static_cast<char>(v[i]));
-            msg.message.append(i + 1 < N ? ", " : " }");
+            if (i && i % 16 == 0) {
+                msg.message_.append("\n");
+}
+            msg.message_.push_back(static_cast<char>(v[i]));
+            msg.message_.append(i + 1 < N ? ", " : " }");
         }
-        m_queuePtr->push(msg);
+        m_queuePtr_->push(msg);
         return *this;
     }
 
@@ -196,14 +198,15 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message.append("{ ");
+        msg.message_.append("{ ");
         for (std::size_t i = 0; i < N; ++i) {
-            if (i && i % 16 == 0)
-                msg.message.append("\n");
-            msg.message.append(std::to_string(v[i]));
-            msg.message.append(i + 1 < N ? ", " : " }");
+            if (i && i % 16 == 0) {
+                msg.message_.append("\n");
+}
+            msg.message_.append(std::to_string(v[i]));
+            msg.message_.append(i + 1 < N ? ", " : " }");
         }
-        m_queuePtr->push(msg);
+        m_queuePtr_->push(msg);
         return *this;
     }
 
@@ -212,14 +215,15 @@ public:
     {
         Message msg;
         fill_message_common_parameters(default_level(), msg);
-        msg.message.append("{ ");
+        msg.message_.append("{ ");
         for (std::size_t i = 0; i < N; ++i) {
-            if (i && i % 16 == 0)
-                msg.message.append("\n");
-            msg.message.append(std::to_string(v[i]));
-            msg.message.append(i + 1 < N ? ", " : " }");
+            if (i && i % 16 == 0) {
+                msg.message_.append("\n");
+}
+            msg.message_.append(std::to_string(v[i]));
+            msg.message_.append(i + 1 < N ? ", " : " }");
         }
-        m_queuePtr->push(msg);
+        m_queuePtr_->push(msg);
         return *this;
     }
 
@@ -232,32 +236,32 @@ public:
     void filename(const char *filename)
     {
         if (filename != nullptr) {
-            m_filename = filename;
+            m_filename_ = filename;
         }
     }
 
-    const char *filename() const { return m_filename.c_str(); }
+    const char *filename() const { return m_filename_.c_str(); }
 
-    flags_t flags() const { return m_flags; }
+    flags_t flags() const { return m_flags_; }
 
-    void flags(flags_t flags) { m_flags = flags; }
+    void flags(flags_t flags) { m_flags_ = flags; }
 
-    void format(line_format_t format) { m_format = format; }
+    void format(line_format_t format) { m_format_ = format; }
 
-    line_format_t format() const { return m_format; }
+    line_format_t format() const { return m_format_; }
 
-    void default_level(log_level_t level) { m_defaultLevel = level; }
+    void default_level(log_level_t level) { m_defaultLevel_ = level; }
 
-    log_level_t default_level() const { return m_defaultLevel; }
+    log_level_t default_level() const { return m_defaultLevel_; }
 
-    std::shared_ptr<SafeQueue<Message>> queue_ptr() { return m_queuePtr; }
+    std::shared_ptr<SafeQueue<Message>> queue_ptr() { return m_queuePtr_; }
 
 private:
-    std::shared_ptr<SafeQueue<Message>> m_queuePtr;
-    std::string m_filename;
-    flags_t m_flags;
-    line_format_t m_format;
-    log_level_t m_defaultLevel;
+    std::shared_ptr<SafeQueue<Message>> m_queuePtr_;
+    std::string m_filename_;
+    flags_t m_flags_;
+    line_format_t m_format_;
+    log_level_t m_defaultLevel_;
 };
 
 class Handler {
@@ -270,7 +274,7 @@ public:
     Handler &operator=(const Handler &) = delete;
     Handler &operator=(Handler &&) = delete;
 
-    std::shared_ptr<SafeQueue<Message>> get_queue_ptr() { return m_queuePtr; }
+    std::shared_ptr<SafeQueue<Message>> get_queue_ptr() { return m_queuePtr_; }
 
     void process();
 
@@ -290,10 +294,10 @@ private:
     static void output_log(const Message &msg, std::ostream &out);
 
 private:
-    std::string m_root;
-    log_level_t m_maxLevel;
-    std::shared_ptr<SafeQueue<Message>> m_queuePtr;
-    std::ostream &m_stream;
+    std::string m_root_;
+    log_level_t m_maxLevel_;
+    std::shared_ptr<SafeQueue<Message>> m_queuePtr_;
+    std::ostream &m_stream_;
     static bool s_init;
     static std::mutex s_mutex;
 };
